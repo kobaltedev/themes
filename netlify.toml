@@ -1,0 +1,6 @@
+[build]
+command = "VITE_ORIGIN=$DEPLOY_URL pnpm --filter @kobalte/themes-docs... run build"
+publish = "docs/dist/"
+
+[functions]
+directory = "docs/.netlify/functions-internal/"

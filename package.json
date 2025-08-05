@@ -1,0 +1,63 @@
+{
+  "name": "@kobalte/themes",
+  "version": "0.0.0-dev",
+  "description": "Theme utilities for Solid & SolidStart",
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm -F @kobalte/themes-dev dev",
+    "dev:docs": "pnpm -F @kobalte/themes-docs dev",
+    "check": "biome check",
+    "build": "tsc && node scripts/build.js",
+    "format": "biome check --write",
+    "typecheck": "tsc --noEmit",
+    "publish:next": "pnpm i && pnpm build && pnpm publish --tag next",
+    "publish:release": "pnpm i && pnpm build && pnpm publish",
+    "release": "pnpm tsx scripts/release.ts"
+  },
+  "keywords": [
+    "solid",
+    "solidjs",
+    "solidstart",
+    "theme"
+  ],
+  "author": "jer3m01 <jer3m01@jer3m01.com>",
+  "contributors": [
+    "Sarah <gerrardsarah@gmail.com>",
+    "Brendan Allan <brendonovich@outlook.com>"
+  ],
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "solid": "./src/index.tsx",
+      "import": "./src/index.tsx",
+      "types": "./src/index.tsx"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "solid": "./dist/index.jsx",
+        "import": "./dist/index.jsx",
+        "types": "./dist/index.d.ts"
+      }
+    }
+  },
+  "files": [
+    "/src",
+    "/dist"
+  ],
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@octokit/core": "^6.1.4",
+    "solid-js": "^1.9.5"
+  },
+  "peerDependencies": {
+    "solid-js": "^1.9.1"
+  },
+  "packageManager": "pnpm@10.6.2+sha512.47870716bea1572b53df34ad8647b42962bc790ce2bf4562ba0f643237d7302a3d6a8ecef9e4bdfc01d23af1969aa90485d4cebb0b9638fa5ef1daef656f6c1b",
+  "dependencies": {
+    "cross-spawn": "^7.0.3",
+    "typescript": "^5.6.3"
+  }
+}
