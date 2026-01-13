@@ -1,12 +1,24 @@
-import { createContext, useContext } from "solid-js";
+import { createContext, useContext, type Accessor } from "solid-js";
 
-export const ThemeContext = createContext();
+export type Theme = "light" | "dark" | "system" | (string & {});
 
-export function useThemeContext() {
-    const context = useContext(ThemeContext);
+export type ThemeContextValue = {
+	theme: Accessor<Theme>;
+	resolvedTheme: Accessor<"light" | "dark">;
+	setTheme: (theme: Theme) => void;
+	themes: string[];
+};
 
-    if (context === undefined) {
-        throw new Error("[kobalte/theme: `useThemeContext` must be used within a `ThemeProvider")
-    }
-    return context;
+export const ThemeContext = createContext<ThemeContextValue>();
+
+export function useTheme(): ThemeContextValue {
+	const context = useContext(ThemeContext);
+
+	if (context === undefined) {
+		throw new Error(
+			"[kobalte/themes]: `useTheme` must be used within a `ThemeProvider`",
+		);
+	}
+
+	return context;
 }

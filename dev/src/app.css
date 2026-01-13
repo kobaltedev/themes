@@ -1,18 +1,20 @@
 @import "tailwindcss";
+@import "./themes/light.css";
+@import "./themes/dark.css";
 
-:root {
-  --background-rgb: 214, 219, 220;
-  --foreground-rgb: 0, 0, 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background-rgb: 0, 0, 0;
-    --foreground-rgb: 255, 255, 255;
-  }
+/* Theme-aware utility colors using CSS variables */
+@theme {
+	--color-bg: rgb(var(--color-bg));
+	--color-text: rgb(var(--color-text));
+	--color-text-muted: rgb(var(--color-text-muted));
+	--color-primary: rgb(var(--color-primary));
+	--color-primary-foreground: rgb(var(--color-primary-foreground));
+	--color-card: rgb(var(--color-card));
+	--color-border: rgb(var(--color-border));
 }
 
 body {
-  background: rgb(var(--background-rgb));
-  color: rgb(var(--foreground-rgb));
+	background-color: rgb(var(--color-bg));
+	color: rgb(var(--color-text));
+	transition: background-color 0.2s ease, color 0.2s ease;
 }
