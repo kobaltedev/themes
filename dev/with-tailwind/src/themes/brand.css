@@ -1,0 +1,9 @@
+[data-theme="brand"] {
+	--color-bg: 250 245 235;
+	--color-text: 41 37 36;
+	--color-text-muted: 120 113 108;
+	--color-primary: 234 88 12;
+	--color-primary-foreground: 255 255 255;
+	--color-card: 254 243 199;
+	--color-border: 253 186 116;
+}

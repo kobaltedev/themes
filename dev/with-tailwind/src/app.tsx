@@ -1,13 +1,16 @@
 import { Router } from "@solidjs/router";
 import { FileRoutes } from "@solidjs/start/router";
 import { Suspense } from "solid-js";
-import { ThemeProvider } from "../../src";
 import Nav from "~/components/Nav";
 import "./app.css";
+import { ThemeProvider } from "../../../src";
 
 export default function App() {
 	return (
-		<ThemeProvider defaultTheme="system">
+		<ThemeProvider
+			defaultTheme="system"
+			themes={["light", "dark", "brand", "system"]}
+		>
 			<Router
 				root={(props) => (
 					<>

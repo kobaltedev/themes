@@ -1,4 +1,4 @@
-import { useTheme } from "../../../src";
+import { useTheme } from "@kobalte/themes";
 
 export default function Home() {
 	const { theme, resolvedTheme, setTheme, themes } = useTheme();

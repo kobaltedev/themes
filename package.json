@@ -4,7 +4,8 @@
   "description": "Theme utilities for Solid & SolidStart",
   "type": "module",
   "scripts": {
-    "dev": "pnpm -F @kobalte/themes-dev dev",
+    "dev": "pnpm -F @kobalte/themes-dev-tailwind dev",
+    "dev:css": "pnpm -F @kobalte/themes-dev-css dev",
     "dev:docs": "pnpm -F @kobalte/themes-docs dev",
     "check": "biome check",
     "build": "tsc && node scripts/build.js",

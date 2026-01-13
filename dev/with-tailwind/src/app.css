@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "./themes/light.css";
 @import "./themes/dark.css";
+@import "./themes/brand.css";
 
 /* Theme-aware utility colors using CSS variables */
 @theme {

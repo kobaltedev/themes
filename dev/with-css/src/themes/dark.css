@@ -1,0 +1,9 @@
+[data-theme="dark"] {
+	--color-bg: 17 24 39;
+	--color-text: 243 244 246;
+	--color-text-muted: 156 163 175;
+	--color-primary: 96 165 250;
+	--color-primary-foreground: 17 24 39;
+	--color-card: 31 41 55;
+	--color-border: 55 65 81;
+}

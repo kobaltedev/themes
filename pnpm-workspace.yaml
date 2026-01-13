@@ -1,5 +1,4 @@
 packages:
   - "."
   - "docs"
-  - "dev"
-  # - "examples/*"
+  - "dev/*"

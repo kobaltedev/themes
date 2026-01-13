@@ -1,10 +1,10 @@
-import { createContext, useContext, type Accessor } from "solid-js";
+import { type Accessor, createContext, useContext } from "solid-js";
 
 export type Theme = "light" | "dark" | "system" | (string & {});
 
 export type ThemeContextValue = {
 	theme: Accessor<Theme>;
-	resolvedTheme: Accessor<"light" | "dark">;
+	resolvedTheme: Accessor<string>;
 	setTheme: (theme: Theme) => void;
 	themes: string[];
 };

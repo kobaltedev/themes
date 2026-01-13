@@ -1,14 +1,16 @@
 import {
-	createSignal,
+	type ParentProps,
 	createEffect,
+	createSignal,
+	on,
 	onCleanup,
 	onMount,
-	type ParentProps,
 } from "solid-js";
-import { isServer } from "solid-js/web";
-import { ThemeContext, type Theme } from "./theme-context";
+import { getRequestEvent, isServer } from "solid-js/web";
+import { type Theme, ThemeContext } from "./theme-context";
 
-const STORAGE_KEY = "kobalte-theme";
+const DEFAULT_COOKIE_NAME = "theme";
+const COOKIE_MAX_AGE = 31536000; // 1 year in seconds
 
 export type ThemeProviderProps = ParentProps<{
 	/** Default theme to use if none is stored. Defaults to "system". */
@@ -19,14 +21,56 @@ export type ThemeProviderProps = ParentProps<{
 	attribute?: "class" | "data-theme";
 	/** Whether to disable transitions when switching themes. Defaults to false. */
 	disableTransitionOnChange?: boolean;
-	/** Storage key for persisting theme. Defaults to "kobalte-theme". */
-	storageKey?: string;
+	/** Cookie name for persisting theme. Defaults to "theme". */
+	cookieName?: string;
 }>;
+
+/**
+ * Parse a cookie value from a cookie string.
+ */
+function getCookie(name: string, cookieString: string | null): string | null {
+	if (!name || !cookieString) return null;
+	const match = cookieString.match(new RegExp(`\\W?${name}=([^;]+)`));
+	return match ? match[1] : null;
+}
+
+/**
+ * Get the theme from cookies, works on both server and client.
+ */
+function getThemeCookie(cookieName: string): string | null {
+	if (isServer) {
+		const event = getRequestEvent();
+		if (!event) return null;
+		return getCookie(cookieName, event.request.headers.get("cookie"));
+	}
+	return getCookie(cookieName, document.cookie);
+}
+
+/**
+ * Set a cookie on the client.
+ */
+function setThemeCookie(cookieName: string, value: string): void {
+	if (isServer) return;
+	document.cookie = `${cookieName}=${value}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax`;
+}
+
+/**
+ * Get the resolved theme that ThemeScript already applied to the DOM.
+ */
+function getAppliedTheme(attribute: "class" | "data-theme"): string | null {
+	if (isServer) return null;
+	const root = document.documentElement;
+	if (attribute === "data-theme") {
+		return root.getAttribute("data-theme");
+	}
+	// For class attribute, we'd need to know the possible themes to check
+	return null;
+}
 
 export function ThemeProvider(props: ThemeProviderProps) {
 	const themes = () => props.themes ?? ["light", "dark", "system"];
 	const attribute = () => props.attribute ?? "data-theme";
-	const storageKey = () => props.storageKey ?? STORAGE_KEY;
+	const cookieName = () => props.cookieName ?? DEFAULT_COOKIE_NAME;
 	const defaultTheme = () => props.defaultTheme ?? "system";
 
 	const getSystemTheme = (): "light" | "dark" => {
@@ -36,38 +80,42 @@ export function ThemeProvider(props: ThemeProviderProps) {
 			: "light";
 	};
 
-	const getStoredTheme = (): Theme | null => {
-		if (isServer) return null;
-		try {
-			return localStorage.getItem(storageKey()) as Theme | null;
-		} catch {
-			return null;
-		}
-	};
-
 	const getInitialTheme = (): Theme => {
-		const stored = getStoredTheme();
+		const stored = getThemeCookie(cookieName());
 		if (stored && themes().includes(stored)) return stored;
 		return defaultTheme();
 	};
 
+	const resolveTheme = (t: Theme): string => {
+		if (t === "system") {
+			return getSystemTheme();
+		}
+		return t;
+	};
+
+	// Get the initial resolved theme - on client, prefer what ThemeScript already set
+	const getInitialResolvedTheme = (): string => {
+		if (!isServer) {
+			// On client, ThemeScript has already set the correct theme
+			// Read it from the DOM to avoid any mismatch
+			const applied = getAppliedTheme(attribute());
+			if (applied) return applied;
+		}
+		// Fallback to computing it
+		return resolveTheme(getInitialTheme());
+	};
+
 	const [theme, setThemeSignal] = createSignal<Theme>(getInitialTheme());
-	const [resolvedTheme, setResolvedTheme] = createSignal<"light" | "dark">(
-		theme() === "system" ? getSystemTheme() : (theme() as "light" | "dark"),
+	const [resolvedTheme, setResolvedTheme] = createSignal<string>(
+		getInitialResolvedTheme(),
 	);
 
 	const setTheme = (newTheme: Theme) => {
 		setThemeSignal(newTheme);
-		if (!isServer) {
-			try {
-				localStorage.setItem(storageKey(), newTheme);
-			} catch {
-				// localStorage might not be available
-			}
-		}
+		setThemeCookie(cookieName(), newTheme);
 	};
 
-	const applyTheme = (resolved: "light" | "dark") => {
+	const applyTheme = (themeValue: string) => {
 		if (isServer) return;
 
 		const root = document.documentElement;
@@ -78,14 +126,17 @@ export function ThemeProvider(props: ThemeProviderProps) {
 		}
 
 		if (attr === "class") {
-			root.classList.remove("light", "dark");
-			root.classList.add(resolved);
+			// Remove all theme classes and add the new one
+			for (const t of themes()) {
+				if (t !== "system") root.classList.remove(t);
+			}
+			root.classList.add(themeValue);
 		} else {
-			root.setAttribute("data-theme", resolved);
+			root.setAttribute("data-theme", themeValue);
 		}
 
-		// Also set class="dark" for Tailwind compatibility
-		root.classList.toggle("dark", resolved === "dark");
+		// Also set class="dark" for Tailwind compatibility (only for dark theme)
+		root.classList.toggle("dark", themeValue === "dark");
 
 		if (props.disableTransitionOnChange) {
 			// Force reflow
@@ -94,20 +145,19 @@ export function ThemeProvider(props: ThemeProviderProps) {
 		}
 	};
 
-	// Watch for theme changes and update resolved theme
-	createEffect(() => {
-		const currentTheme = theme();
-		if (currentTheme === "system") {
-			setResolvedTheme(getSystemTheme());
-		} else {
-			setResolvedTheme(currentTheme as "light" | "dark");
-		}
-	});
-
-	// Apply resolved theme to DOM
-	createEffect(() => {
-		applyTheme(resolvedTheme());
-	});
+	// Only apply theme when theme signal changes (not on initial render)
+	// ThemeScript has already set the correct theme before hydration
+	createEffect(
+		on(
+			theme,
+			(currentTheme) => {
+				const resolved = resolveTheme(currentTheme);
+				setResolvedTheme(resolved);
+				applyTheme(resolved);
+			},
+			{ defer: true },
+		),
+	);
 
 	// Listen for system theme changes
 	onMount(() => {
@@ -115,22 +165,14 @@ export function ThemeProvider(props: ThemeProviderProps) {
 
 		const handleChange = (e: MediaQueryListEvent) => {
 			if (theme() === "system") {
-				setResolvedTheme(e.matches ? "dark" : "light");
+				const resolved = e.matches ? "dark" : "light";
+				setResolvedTheme(resolved);
+				applyTheme(resolved);
 			}
 		};
 
 		mediaQuery.addEventListener("change", handleChange);
 		onCleanup(() => mediaQuery.removeEventListener("change", handleChange));
-
-		// Listen for storage changes (for multi-tab sync)
-		const handleStorage = (e: StorageEvent) => {
-			if (e.key === storageKey() && e.newValue) {
-				setThemeSignal(e.newValue as Theme);
-			}
-		};
-
-		window.addEventListener("storage", handleStorage);
-		onCleanup(() => window.removeEventListener("storage", handleStorage));
 	});
 
 	return (
