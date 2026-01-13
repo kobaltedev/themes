@@ -2,7 +2,6 @@ import {
 	type ParentProps,
 	createEffect,
 	createSignal,
-	on,
 	onCleanup,
 	onMount,
 } from "solid-js";
@@ -54,19 +53,6 @@ function setThemeCookie(cookieName: string, value: string): void {
 	document.cookie = `${cookieName}=${value}; max-age=${COOKIE_MAX_AGE}; path=/; SameSite=Lax`;
 }
 
-/**
- * Get the resolved theme that ThemeScript already applied to the DOM.
- */
-function getAppliedTheme(attribute: "class" | "data-theme"): string | null {
-	if (isServer) return null;
-	const root = document.documentElement;
-	if (attribute === "data-theme") {
-		return root.getAttribute("data-theme");
-	}
-	// For class attribute, we'd need to know the possible themes to check
-	return null;
-}
-
 export function ThemeProvider(props: ThemeProviderProps) {
 	const themes = () => props.themes ?? ["light", "dark", "system"];
 	const attribute = () => props.attribute ?? "data-theme";
@@ -93,21 +79,9 @@ export function ThemeProvider(props: ThemeProviderProps) {
 		return t;
 	};
 
-	// Get the initial resolved theme - on client, prefer what ThemeScript already set
-	const getInitialResolvedTheme = (): string => {
-		if (!isServer) {
-			// On client, ThemeScript has already set the correct theme
-			// Read it from the DOM to avoid any mismatch
-			const applied = getAppliedTheme(attribute());
-			if (applied) return applied;
-		}
-		// Fallback to computing it
-		return resolveTheme(getInitialTheme());
-	};
-
 	const [theme, setThemeSignal] = createSignal<Theme>(getInitialTheme());
 	const [resolvedTheme, setResolvedTheme] = createSignal<string>(
-		getInitialResolvedTheme(),
+		resolveTheme(theme()),
 	);
 
 	const setTheme = (newTheme: Theme) => {
@@ -145,19 +119,14 @@ export function ThemeProvider(props: ThemeProviderProps) {
 		}
 	};
 
-	// Only apply theme when theme signal changes (not on initial render)
-	// ThemeScript has already set the correct theme before hydration
-	createEffect(
-		on(
-			theme,
-			(currentTheme) => {
-				const resolved = resolveTheme(currentTheme);
-				setResolvedTheme(resolved);
-				applyTheme(resolved);
-			},
-			{ defer: true },
-		),
-	);
+	// Watch for theme changes and update resolved theme
+	createEffect(() => {
+		const currentTheme = theme();
+		const resolved = resolveTheme(currentTheme);
+
+		setResolvedTheme(resolved);
+		applyTheme(resolved);
+	});
 
 	// Listen for system theme changes
 	onMount(() => {
